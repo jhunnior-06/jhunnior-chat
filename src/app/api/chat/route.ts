@@ -1,15 +1,104 @@
 import { NextResponse } from "next/server";
 
+export const runtime = "nodejs";
+
+type GeminiResponse = {
+  candidates?: Array<{
+    content?: {
+      parts?: Array<{ text?: string; thought?: boolean }>;
+    };
+  }>;
+};
+
 export async function POST(request: Request) {
   const body = await request.json().catch(() => null);
   const text = typeof body?.text === "string" ? body.text.trim() : "";
 
   if (!text || text.length > 20_000) {
-    return NextResponse.json({ error: { code: "INVALID_MESSAGE", message: "Escribe un mensaje válido." } }, { status: 400 });
+    return NextResponse.json(
+      { error: { code: "INVALID_MESSAGE", message: "Escribe un mensaje válido." } },
+      { status: 400 }
+    );
   }
 
-  // Punto de integración: sustituir por el proveedor configurado en lib/ai/provider.ts.
-  return NextResponse.json({
-    message: `He recibido tu idea sobre “${text.slice(0, 80)}${text.length > 80 ? "…" : ""}”.\n\nLa integración con IA se conectará aquí cuando configures el proveedor y su clave en .env.local.`,
-  });
+  const apiKey = process.env.AI_API_KEY;
+  const model = process.env.AI_MODEL;
+
+  if (!apiKey || !model || !/^[a-zA-Z0-9.-]+$/.test(model)) {
+    return NextResponse.json(
+      {
+        error: {
+          code: "MISSING_CONFIG",
+          message: "Configura AI_API_KEY y AI_MODEL en Vercel.",
+        },
+      },
+      { status: 503 }
+    );
+  }
+
+  try {
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey,
+        },
+        body: JSON.stringify({
+          contents: [{ role: "user", parts: [{ text }] }],
+        }),
+        signal: AbortSignal.timeout(25_000),
+      }
+    );
+
+    if (!response.ok) {
+      const message =
+        response.status === 429
+          ? "Se alcanzó la cuota de Gemini. Intenta más tarde."
+          : response.status === 404
+            ? "El modelo configurado no está disponible."
+            : response.status === 400 ||
+                response.status === 401 ||
+                response.status === 403
+              ? "Revisa la clave, el modelo y los permisos en Google AI Studio."
+              : "Gemini no está disponible en este momento.";
+
+      return NextResponse.json(
+        { error: { code: "GEMINI_ERROR", message } },
+        { status: response.status === 429 ? 429 : 502 }
+      );
+    }
+
+    const data = (await response.json()) as GeminiResponse;
+    const message = data.candidates?.[0]?.content?.parts
+      ?.filter((part) => !part.thought)
+      .map((part) => part.text ?? "")
+      .join("")
+      .trim();
+
+    if (!message) {
+      return NextResponse.json(
+        {
+          error: {
+            code: "EMPTY_RESPONSE",
+            message: "Gemini no devolvió una respuesta de texto.",
+          },
+        },
+        { status: 502 }
+      );
+    }
+
+    return NextResponse.json({ message });
+  } catch {
+    return NextResponse.json(
+      {
+        error: {
+          code: "CONNECTION_ERROR",
+          message: "La conexión con Gemini falló o tardó demasiado.",
+        },
+      },
+      { status: 504 }
+    );
+  }
 }
