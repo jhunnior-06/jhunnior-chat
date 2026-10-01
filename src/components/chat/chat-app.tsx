@@ -5,6 +5,7 @@ import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from "
 type Role = "user" | "assistant";
 type Message = { id: string; role: Role; content: string; createdAt: number };
 type Conversation = { id: string; title: string; createdAt: number; messages: Message[] };
+type ChatApiResponse = { message?: string; error?: { message?: string } };
 
 const starter: Conversation = {
   id: "welcome",
@@ -103,12 +104,17 @@ export function ChatApp() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ text }),
       });
-      const result = await response.json() as { message?: string };
-      if (!response.ok) throw new Error("No fue posible generar la respuesta.");
-      const reply: Message = { id: id(), role: "assistant", content: result.message ?? "No pude generar una respuesta.", createdAt: Date.now() };
+      const result = (await response.json().catch(() => null)) as ChatApiResponse | null;
+      if (!response.ok) {
+        throw new Error(result?.error?.message ?? "No fue posible generar la respuesta.");
+      }
+      const reply: Message = { id: id(), role: "assistant", content: result?.message ?? "No pude generar una respuesta.", createdAt: Date.now() };
       setConversations((current) => current.map((item) => item.id === targetId ? { ...item, messages: [...item.messages, reply] } : item));
-    } catch {
-      const reply: Message = { id: id(), role: "assistant", content: "Hubo un problema al conectar. Comprueba que el servidor esté en ejecución e inténtalo de nuevo.", createdAt: Date.now() };
+    } catch (error) {
+      const message = error instanceof Error
+        ? error.message
+        : "Hubo un problema al conectar. Comprueba que el servidor esté en ejecución e inténtalo de nuevo.";
+      const reply: Message = { id: id(), role: "assistant", content: message, createdAt: Date.now() };
       setConversations((current) => current.map((item) => item.id === targetId ? { ...item, messages: [...item.messages, reply] } : item));
     } finally {
       setIsSending(false);
