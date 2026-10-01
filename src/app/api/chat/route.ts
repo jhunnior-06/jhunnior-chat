@@ -64,7 +64,7 @@ export async function POST(request: Request) {
     if (!response.ok) {
       const message =
         response.status === 429
-          ? "Se alcanzó la cuota de Gemini. Intenta más tarde."
+          ? "Alcanzaste el límite del chat. Intenta más tarde."
           : response.status === 404
             ? "El modelo configurado no está disponible."
             : response.status === 400 ||
