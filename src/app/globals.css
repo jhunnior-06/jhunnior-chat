@@ -27,9 +27,12 @@ html, body { min-height: 100%; }
 body { margin: 0; background: var(--canvas); color: var(--ink); font-family: Arial, Helvetica, sans-serif; -webkit-font-smoothing: antialiased; }
 button, input, textarea { font: inherit; }
 button { cursor: pointer; color: inherit; }
+.auth-page { min-height: 100dvh; display: grid; place-items: center; padding: 24px; background: var(--soft); }
 .shell { min-height: 100dvh; display: flex; overflow: hidden; }
 
 .sidebar { width: 282px; flex: 0 0 282px; min-height: 100dvh; background: var(--sidebar); border-right: 1px solid var(--line); padding: 20px 14px 14px; display: flex; flex-direction: column; transition: transform .22s ease; z-index: 4; }
+.sidebar-toggle { position: fixed; z-index: 5; left: 264px; top: 80px; width: 25px; height: 40px; padding: 0; border: 1px solid var(--line); border-left: 0; border-radius: 0 9px 9px 0; background: var(--sidebar); color: var(--muted); box-shadow: 3px 2px 8px #0000000d; transition: left .22s ease, background .16s, color .16s; }
+.sidebar-toggle:hover { background: var(--soft); color: var(--ink); }.sidebar-toggle span { display: inline-block; font-size: 18px; transition: transform .22s ease; }.sidebar-toggle:not(.is-expanded) { left: 0; }.sidebar-toggle:not(.is-expanded) span { transform: rotate(180deg); }
 .brand-row { height: 41px; padding: 0 7px; display: flex; align-items: center; gap: 10px; color: var(--ink); font-size: 15px; font-weight: 700; letter-spacing: -.2px; }
 .brand-mark { width: 27px; height: 27px; display: grid; place-items: center; color: white; font-weight: 800; font-size: 15px; border-radius: 9px; background: linear-gradient(135deg, #825cff, #5136dd); box-shadow: 0 4px 11px #754fff42; }
 .mobile-close { display: none; margin-left: auto; }
@@ -57,6 +60,7 @@ kbd { margin-left: auto; color: #e8e1ff; font-size: 10px; font-weight: 500; back
 .profile strong { font-size: 12px; }
 .profile small { margin-top: 2px; color: var(--muted); font-size: 10px; }
 .dots { margin-left: auto; color: var(--muted); letter-spacing: 1px; }
+.user-menu { margin-left: auto; display: grid; place-items: center; }
 .theme-button { color: var(--muted); padding: 8px 7px 2px; font-size: 12px; }
 .theme-button span:last-child { margin-left: auto; font-size: 19px; }
 
@@ -86,6 +90,13 @@ kbd { margin-left: auto; color: #e8e1ff; font-size: 10px; font-weight: 500; back
 .composer { width: min(760px, 100%); margin: 0 auto; padding: 12px 13px 8px 15px; min-height: 93px; border: 1px solid #dedce4; border-radius: 13px; background: var(--canvas); box-shadow: 0 5px 17px #322d4510; }
 .composer:focus-within { border-color: #a996ff; box-shadow: 0 0 0 3px #8567fa12; }
 .composer textarea { display: block; width: 100%; height: 33px; resize: none; border: 0; outline: 0; background: transparent; color: var(--ink); line-height: 1.45; font-size: 14px; }
+.file-input { display: none; }
+.pending-attachments, .attachment-list { list-style: none; padding: 0; margin: 7px 0; }
+.pending-attachments { display: flex; flex-wrap: wrap; gap: 6px; }
+.pending-attachments li, .attachment-list li { color: var(--muted); font-size: 11px; }
+.pending-attachments li { display: flex; align-items: center; gap: 6px; padding: 4px 6px; border-radius: 6px; background: var(--soft); }
+.pending-attachments button { width: 18px; height: 18px; border: 0; border-radius: 4px; background: transparent; color: var(--muted); }
+.upload-error { margin: 6px 0; color: #b42318; font-size: 11px; }
 .composer-tools { display: flex; justify-content: space-between; align-items: center; }
 .composer-tools button { border: 0; color: #85828f; background: transparent; width: 28px; height: 28px; border-radius: 6px; font-size: 20px; line-height: 1; }
 .composer-tools button:hover { background: var(--soft); }
@@ -99,6 +110,17 @@ kbd { margin-left: auto; color: #e8e1ff; font-size: 10px; font-weight: 500; back
 .message-avatar.assistant { color: white; background: var(--purple); }
 .message-content { max-width: 690px; padding-top: 4px; font-size: 14px; line-height: 1.6; }
 .message-content p { margin: 0 0 9px; white-space: pre-wrap; }
+.message.assistant .message-content h1, .message.assistant .message-content h2, .message.assistant .message-content h3 { margin: 0 0 10px; line-height: 1.3; }
+.message.assistant .message-content h1 { font-size: 21px; }.message.assistant .message-content h2 { font-size: 18px; }.message.assistant .message-content h3 { font-size: 16px; }
+.message.assistant .message-content ul, .message.assistant .message-content ol { margin: 0 0 12px; padding-left: 22px; }
+.message.assistant .message-content li + li { margin-top: 4px; }
+.message.assistant .message-content a { color: var(--purple-deep); text-decoration: underline; }
+.message.assistant .message-content pre { overflow-x: auto; margin: 12px 0; padding: 13px; border-radius: 10px; background: #1e1e26; color: #f5f2ff; font-size: 12px; }
+.message.assistant .message-content code { padding: 2px 5px; border-radius: 4px; background: var(--soft); font-family: ui-monospace, SFMono-Regular, Consolas, monospace; font-size: .88em; }
+.message.assistant .message-content pre code { padding: 0; background: transparent; }
+.message.assistant .message-content table { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; margin: 12px 0; }
+.message.assistant .message-content th, .message.assistant .message-content td { padding: 7px 9px; border: 1px solid var(--line); text-align: left; }
+.message.assistant .message-content th { background: var(--soft); }
 .message.user .message-content { background: var(--soft); border-radius: 4px 14px 14px 14px; padding: 10px 14px; }
 .message-actions { opacity: .65; display: flex; gap: 4px; margin-top: 11px; }
 .message-actions button { border: 0; border-radius: 5px; background: transparent; color: var(--muted); }
@@ -110,6 +132,7 @@ kbd { margin-left: auto; color: #e8e1ff; font-size: 10px; font-weight: 500; back
 @media (max-width: 720px) {
   .sidebar { position: fixed; left: 0; top: 0; transform: translateX(-100%); box-shadow: 12px 0 32px #0000001c; }
   .sidebar.is-open { transform: translateX(0); }
+  .sidebar-toggle { display: none; }
   .mobile-close { display: grid; }
   .topbar { height: 59px; flex-basis: 59px; padding: 0 14px; }
   .welcome { width: min(100% - 32px, 520px); padding-top: 60px; }

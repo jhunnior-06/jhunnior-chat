@@ -1,5 +1,5 @@
-import { ChatApp } from "../components/chat/chat-app";
+import { redirect } from "next/navigation";
 
 export default function Home() {
-  return <ChatApp />;
+  redirect("/sign-up");
 }
